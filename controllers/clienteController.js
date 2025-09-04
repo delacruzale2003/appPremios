@@ -1,8 +1,15 @@
+const { validationResult } = require('express-validator');
 const Cliente = require('../models/Cliente');
 
 // Función para registrar un cliente
 exports.registrarCliente = async (req, res) => {
-    const { dni, nombre, telefono, tienda } = req.body; // Asegúrate de pasar el ID de la tienda desde el frontend
+    // Capturar los errores de validación
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { dni, nombre, telefono, tienda, foto } = req.body;
 
     try {
         // Crear el cliente
@@ -10,7 +17,8 @@ exports.registrarCliente = async (req, res) => {
             dni,
             nombre,
             telefono,
-            tienda
+            tienda,
+            foto
         });
 
         // Guardar el cliente
@@ -23,11 +31,13 @@ exports.registrarCliente = async (req, res) => {
 
 // Función para obtener los últimos clientes registrados
 exports.getClientes = async (req, res) => {
+    const { limit = 10 } = req.query;
+
     try {
-        // Obtener los últimos 10 clientes registrados (puedes ajustar el número si lo necesitas)
+        // Obtener los últimos clientes registrados
         const clientes = await Cliente.find()
-            .sort({ fecha_registro: -1 }) // Ordenar por fecha de registro, de más reciente a más antiguo
-            .limit(10); // Limitar a los 10 últimos registrados
+            .sort({ fecha_registro: -1 })
+            .limit(Number(limit));
 
         res.status(200).json({ clientes });
     } catch (error) {
