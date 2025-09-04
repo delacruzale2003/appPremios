@@ -16,6 +16,10 @@ const RegistroSchema = new mongoose.Schema({
         ref: 'Premio',   // Relación con el modelo Premio
         required: true 
     },
+    foto: { 
+        type: String,  // Almacena la URL o ruta de la foto del voucher
+        required: true 
+    },
     fecha_registro: { 
         type: Date, 
         default: Date.now 

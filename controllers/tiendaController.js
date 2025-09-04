@@ -1,15 +1,16 @@
 const Tienda = require('../models/Tienda');
 
-// Función para obtener una tienda por su ID
-const getTiendaById = async (req, res) => {
+// Función para obtener todas las tiendas
+const getTiendas = async (req, res) => {
     try {
-        const tienda = await Tienda.findById(req.params.id).populate('premios_disponibles');
-        if (!tienda) {
-            return res.status(404).json({ message: 'Tienda no encontrada' });
+        // Obtener todas las tiendas y poblar los premios disponibles
+        const tiendas = await Tienda.find().populate('premios_disponibles');
+        if (!tiendas || tiendas.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron tiendas' });
         }
-        res.json(tienda);
+        res.json(tiendas);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener tienda', error });
+        res.status(500).json({ message: 'Error al obtener tiendas', error });
     }
 };
 
@@ -36,8 +37,60 @@ const crearTienda = async (req, res) => {
     }
 };
 
+// Función para actualizar una tienda
+const actualizarTienda = async (req, res) => {
+    const { nombre, premios_disponibles } = req.body;
+    const { id } = req.params;
+
+    try {
+        // Buscar la tienda por su ID
+        const tienda = await Tienda.findById(id);
+        if (!tienda) {
+            return res.status(404).json({ message: 'Tienda no encontrada' });
+        }
+
+        // Actualizar los campos de la tienda
+        tienda.nombre = nombre || tienda.nombre;  // Solo actualiza si hay un nuevo valor
+        tienda.premios_disponibles = premios_disponibles || tienda.premios_disponibles;
+
+        // Guardar la tienda actualizada
+        await tienda.save();
+
+        res.status(200).json({
+            message: 'Tienda actualizada correctamente',
+            tienda
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar tienda', error });
+    }
+};
+
+// Función para eliminar una tienda
+const eliminarTienda = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Buscar la tienda por su ID
+        const tienda = await Tienda.findById(id);
+        if (!tienda) {
+            return res.status(404).json({ message: 'Tienda no encontrada' });
+        }
+
+        // Eliminar la tienda
+        await Tienda.findByIdAndDelete(id);
+
+        res.status(200).json({
+            message: 'Tienda eliminada correctamente'
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al eliminar tienda', error });
+    }
+};
+
 // Exportar las funciones individualmente
 module.exports = {
     crearTienda,
-    getTiendaById
+    getTiendas,
+    actualizarTienda,
+    eliminarTienda
 };

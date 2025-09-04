@@ -2,8 +2,17 @@ const express = require('express');
 const router = express.Router();
 const premioController = require('../controllers/premioController');
 
-// Ruta para crear un premio
-router.post('/crear', premioController.crearPremio);
-router.put('/entregar', premioController.entregarPremio);
-router.get('/tienda/:id_tienda', premioController.getPremiosByIdTienda);
+// Ruta para crear un nuevo premio
+router.post('/', premioController.crearPremio);
+
+// Ruta para entregar un premio
+router.post('/entregar', premioController.entregarPremio);
+
+// Ruta para obtener los premios por ID de tienda
+router.get('/:id_tienda', premioController.getPremiosByIdTienda);
+
+// Ruta para actualizar un premio
+router.put('/:id', premioController.actualizarPremio);
+
+// Exportar las rutas
 module.exports = router;
