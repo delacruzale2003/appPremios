@@ -1,1 +1,22 @@
+# Ignorar la carpeta de dependencias
+node_modules/
+
+# Ignorar archivos de configuración del entorno
 .env
+
+# Si estás usando logs, también puedes ignorarlos
+*.log
+
+# Ignorar el directorio de build o distribución
+/dist
+/build
+
+# Ignorar el directorio de test
+/coverage
+
+# Ignorar la carpeta de IDEs y editores (como VSCode, JetBrains, etc.)
+.vscode/
+.idea/
+
+# Otros archivos específicos que quieras ignorar
+.DS_Store

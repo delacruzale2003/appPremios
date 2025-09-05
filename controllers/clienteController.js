@@ -29,15 +29,16 @@ exports.registrarCliente = async (req, res) => {
     }
 };
 
-// Función para obtener los últimos clientes registrados
+// Función para obtener los últimos clientes registrados con el nombre de la tienda
 exports.getClientes = async (req, res) => {
     const { limit = 10 } = req.query;
 
     try {
-        // Obtener los últimos clientes registrados
+        // Obtener los últimos clientes registrados y poblar el nombre de la tienda
         const clientes = await Cliente.find()
             .sort({ fecha_registro: -1 })
-            .limit(Number(limit));
+            .limit(Number(limit))
+            .populate('tienda', 'nombre');  // Poblar la tienda y solo obtener el campo 'nombre'
 
         res.status(200).json({ clientes });
     } catch (error) {

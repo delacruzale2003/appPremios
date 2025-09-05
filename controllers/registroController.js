@@ -13,6 +13,7 @@ exports.getRegistros = async (req, res) => {
         // Responder con los registros encontrados
         res.status(200).json({ registros });
     } catch (error) {
+        // Manejar el error y devolver una respuesta con estado 500
         res.status(500).json({ message: 'Error al obtener registros', error });
     }
 };
