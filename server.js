@@ -7,7 +7,7 @@ const app = express();
 const tiendaRoutes = require('./routes/tiendaRoutes');
 const premioRoutes = require('./routes/premioRoutes');
 const clienteRoutes = require('./routes/clienteRoutes');
-
+const registroRoutes = require('./routes/registroRoutes');
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 
@@ -27,7 +27,7 @@ app.use(express.json());
 app.use('/tienda', tiendaRoutes);
 app.use('/premio', premioRoutes);
 app.use('/cliente', clienteRoutes);
-
+app.use('/registro', registroRoutes);
 // Puerto de escucha usando la variable de entorno PORT
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));

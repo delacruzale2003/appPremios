@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const registroController = require('../controllers/registroController'); // Asegúrate de tener el controlador correcto
+const registroController = require('../controllers/registroController');
 
-// Ruta para obtener todos los registros (con los detalles relacionados de Cliente, Tienda, Premio)
+// Obtener todos los registros con detalles relacionados
 router.get('/', registroController.getRegistros);
 
-// Ruta para registrar un nuevo registro (cuando un cliente gana un premio)
-router.post('/', registroController.registrarRegistro);
 
-// Aquí puedes agregar más rutas según sea necesario, por ejemplo, para eliminar registros, actualizar, etc.
+
+// Obtener un registro específico por su ID
+router.get('/:id', registroController.getRegistroById);
+
+router.get('/cliente/:idCliente', registroController.getRegistroPorCliente);
 
 // Exportar las rutas
 module.exports = router;

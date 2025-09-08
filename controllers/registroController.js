@@ -17,3 +17,43 @@ exports.getRegistros = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener registros', error });
     }
 };
+
+exports.getRegistroById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const registro = await Registro.findById(id)
+      .populate('cliente_id', 'nombre dni telefono foto')  // Incluye la foto del cliente
+      .populate('tienda_id', 'nombre')
+      .populate('premio_id', 'nombre')  // Si el premio tiene más datos, puedes agregar aquí
+      .exec();
+
+    if (!registro) {
+      return res.status(404).json({ message: 'Registro no encontrado' });
+    }
+
+    res.status(200).json({ registro });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener el registro', error });
+  }
+};
+
+exports.getRegistroPorCliente = async (req, res) => {
+  try {
+    const { idCliente } = req.params;
+
+    const registro = await Registro.findOne({ cliente_id: idCliente })
+      .populate('cliente_id', 'nombre dni telefono foto')
+      .populate('tienda_id', 'nombre')
+      .populate('premio_id', 'nombre')
+      .exec();
+
+    if (!registro) {
+      return res.status(404).json({ message: 'No se encontró registro para este cliente' });
+    }
+
+    res.status(200).json({ registro });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener el registro por cliente', error });
+  }
+};

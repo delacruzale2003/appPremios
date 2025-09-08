@@ -1,28 +1,28 @@
 const mongoose = require('mongoose');
 
 const RegistroSchema = new mongoose.Schema({
-    cliente_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    cliente_id: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Cliente',  // Relación con el modelo Cliente
-        required: true 
+        required: true
     },
-    tienda_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    tienda_id: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Tienda',   // Relación con el modelo Tienda
-        required: true 
+        required: true
     },
-    premio_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    premio_id: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Premio',   // Relación con el modelo Premio
-        required: true 
+        required: true
     },
-    foto: { 
+    foto: {
         type: String,  // Almacena la URL o ruta de la foto del voucher
-        required: true 
+        required: true
     },
-    fecha_registro: { 
-        type: Date, 
-        default: Date.now 
+    fecha_registro: {
+        type: Date,
+        default: Date.now
     }
 });
 
