@@ -45,3 +45,18 @@ exports.getClientes = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener clientes', error });
     }
 };
+// Obtener un cliente por su ID
+exports.getClientePorId = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const cliente = await Cliente.findById(id).populate('tienda', 'nombre');
+    if (!cliente) {
+      return res.status(404).json({ message: 'Cliente no encontrado' });
+    }
+
+    res.status(200).json({ cliente });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener cliente', error });
+  }
+};

@@ -5,7 +5,8 @@ const RegistroSchema = new mongoose.Schema({
   cliente_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cliente',
-    required: true
+    required: true,
+    unique: true    // <— índice único aquí
   },
   tienda_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +20,6 @@ const RegistroSchema = new mongoose.Schema({
   },
   foto: {
     type: String,
-    // ya no es obligatorio y por defecto vacío
     required: false,
     default: ""
   },
@@ -28,5 +28,8 @@ const RegistroSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Si quieres, también puedes definirlo como índice:
+// RegistroSchema.index({ cliente_id: 1 }, { unique: true });
 
 module.exports = mongoose.model('Registro', RegistroSchema);

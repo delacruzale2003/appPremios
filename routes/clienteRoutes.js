@@ -21,4 +21,6 @@ router.get('/clientes',
     clienteController.getClientes
 );
 
+router.get('/:id', clienteController.getClientePorId);
+
 module.exports = router;
