@@ -43,44 +43,40 @@ exports.entregarPremio = async (req, res) => {
   const { id_cliente, id_tienda } = req.body;
 
   try {
-    // 1. Buscar la tienda
+    // 1) Verificar tienda
     const tienda = await Tienda.findById(id_tienda);
-    if (!tienda) {
-      return res.status(404).json({ message: 'Tienda no encontrada' });
-    }
+    if (!tienda) return res.status(404).json({ message: 'Tienda no encontrada' });
 
-    // 2. Buscar premios disponibles
+    // 2) Obtener premios disponibles
     const premios = await Premio.find({ id_tienda });
-    if (premios.length === 0) {
-      return res.status(404).json({ message: 'No hay premios disponibles en esta tienda' });
+    if (!premios.length) {
+      return res.status(404).json({ message: 'No hay premios disponibles' });
     }
     const premioAleatorio = premios[Math.floor(Math.random() * premios.length)];
     if (premioAleatorio.stock_disponible <= 0) {
-      return res.status(400).json({ message: 'No hay stock disponible en el premio seleccionado' });
+      return res.status(400).json({ message: 'Sin stock de premio' });
     }
 
-    // 3. Descontar existencias
+    // 3) Descontar stock
     premioAleatorio.stock_disponible -= 1;
     await premioAleatorio.save();
     tienda.premios_disponibles -= 1;
     await tienda.save();
 
-    // 4. Buscar al cliente
+    // 4) Buscar cliente
     const cliente = await Cliente.findById(id_cliente);
-    if (!cliente) {
-      return res.status(404).json({ message: 'Cliente no encontrado' });
-    }
+    if (!cliente) return res.status(404).json({ message: 'Cliente no encontrado' });
 
-    // 5. Asignar premio al cliente
+    // 5) Guardar premio en cliente
     cliente.premio = premioAleatorio._id;
     await cliente.save();
 
-    // 6. Crear registro usando cliente.foto
+    // 6) Crear registro usando la foto del cliente
     const registro = new Registro({
-      cliente_id:    cliente._id,
-      tienda_id:     tienda._id,
-      premio_id:     premioAleatorio._id,
-      foto:          cliente.foto,        // <–– aquí reutilizas la foto del cliente
+      cliente_id: cliente._id,
+      tienda_id:  tienda._id,
+      premio_id:  premioAleatorio._id,
+      foto:       cliente.foto,   // <–– reutilizas la foto del cliente
       fecha_registro: new Date()
     });
     await registro.save();
@@ -91,7 +87,7 @@ exports.entregarPremio = async (req, res) => {
       cliente: cliente.nombre
     });
   } catch (error) {
-    console.error("Error al entregar el premio:", error);
+    console.error("Error al entregar premio:", error);
     return res.status(500).json({ message: 'Error al entregar premio', error: error.message });
   }
 };
