@@ -21,8 +21,9 @@ router.get('/clientes',
     clienteController.getClientes
 );
 
-router.get('/:id', clienteController.getClientePorId);
 router.get('/pendientes', clienteController.getClientesPendientes);
 router.get('/cancelados', clienteController.getClientesCancelados);
+router.get('/:id', clienteController.getClientePorId); // ← esta debe ir al final
+
 
 module.exports = router;
