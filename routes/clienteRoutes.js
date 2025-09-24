@@ -23,5 +23,6 @@ router.get('/clientes',
 
 router.get('/:id', clienteController.getClientePorId);
 router.get('/pendientes', clienteController.getClientesPendientes);
+router.get('/cancelados', clienteController.getClientesCancelados);
 
 module.exports = router;

@@ -76,3 +76,11 @@ exports.getClientesPendientes = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener clientes pendientes', error });
   }
 };
+exports.getClientesCancelados = async (req, res) => {
+  try {
+    const clientes = await Cliente.find({ isValid: false }).populate('tienda', 'nombre');
+    res.status(200).json({ clientes });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener clientes cancelados', error });
+  }
+};
