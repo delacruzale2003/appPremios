@@ -80,12 +80,16 @@ exports.entregarPremio = async (req, res) => {
     tienda.premios_disponibles -= 1;
     await tienda.save();
 
-    // ——— 4) Buscar cliente y asignar premio ———
+    // ——— 4) Buscar cliente y actualizar estado ———
     const cliente = await Cliente.findById(id_cliente);
     if (!cliente) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
     }
+
     cliente.premio = premioAleatorio._id;
+    cliente.isValid = true;
+    cliente.tienePremio = true;
+    cliente.mensaje = 'Registro correcto';
     await cliente.save();
 
     // ——— 5) Crear registro reutilizando la foto del cliente ———
@@ -105,7 +109,6 @@ exports.entregarPremio = async (req, res) => {
     });
 
   } catch (err) {
-    // Si es error de clave duplicada (índice único), manejalo suavemente
     if (err.code === 11000 && err.keyPattern?.cliente_id) {
       return res
         .status(400)
@@ -117,6 +120,7 @@ exports.entregarPremio = async (req, res) => {
       .json({ message: 'Error al entregar premio', error: err.message });
   }
 };
+
 
 // Función para obtener los premios disponibles por ID de tienda
 exports.getPremiosByIdTienda = async (req, res) => {
@@ -174,4 +178,26 @@ exports.actualizarPremio = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error al actualizar premio', error });
     }
+};
+exports.cancelarCliente = async (req, res) => {
+  const { id_cliente } = req.body;
+
+  try {
+    const cliente = await Cliente.findById(id_cliente);
+    if (!cliente) {
+      return res.status(404).json({ message: 'Cliente no encontrado' });
+    }
+
+    cliente.isValid = false;
+    cliente.mensaje = 'Registro incorrecto. Vuelva a intentarlo.';
+    await cliente.save();
+
+    return res.json({
+      message: 'Cliente cancelado correctamente',
+      cliente: cliente.nombre
+    });
+  } catch (error) {
+    console.error('Error al cancelar cliente:', error);
+    return res.status(500).json({ message: 'Error al cancelar cliente', error: error.message });
+  }
 };

@@ -13,6 +13,7 @@ router.get('/:id_tienda', premioController.getPremiosByIdTienda);
 
 // Ruta para actualizar un premio
 router.put('/:id', premioController.actualizarPremio);
-
+// Ruta para cancelar un cliente
+router.post('/cancelar', premioController.cancelarCliente);
 // Exportar las rutas
 module.exports = router;

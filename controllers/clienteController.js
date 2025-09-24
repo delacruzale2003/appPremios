@@ -14,12 +14,14 @@ exports.registrarCliente = async (req, res) => {
     try {
         // Crear el cliente
         const cliente = new Cliente({
-            dni,
-            nombre,
-            telefono,
-            tienda,
-            foto
-        });
+  dni,
+  nombre,
+  telefono,
+  tienda,
+  foto,
+  isValid: true,       // ← aparece en el panel
+  tienePremio: false,  // ← aún no tiene premio
+});
 
         // Guardar el cliente
         await cliente.save();
