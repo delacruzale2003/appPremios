@@ -4,19 +4,19 @@ const Tienda = require('../models/Tienda');
 const getTiendas = async (req, res) => {
   try {
     const { campaña } = req.query;
-
-    // Si hay campaña, filtra por ella; si no, trae todas
     const filtro = campaña ? { campaña } : {};
 
-    const tiendas = await Tienda.find(filtro).populate('premios_disponibles').lean();
+    const tiendas = await Tienda
+      .find(filtro)
+      .populate('premios_disponibles')
+      .lean();
 
-    if (!tiendas || tiendas.length === 0) {
-      return res.status(404).json({ message: 'No se encontraron tiendas' });
-    }
-
-    res.json(tiendas);
+    // Siempre retorna un array (vacío si no hay resultados)
+    return res.json(tiendas);
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener tiendas', error });
+    return res
+      .status(500)
+      .json({ message: 'Error al obtener tiendas', error });
   }
 };
 
