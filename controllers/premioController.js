@@ -146,34 +146,36 @@ exports.getPremiosByIdTienda = async (req, res) => {
   }
 };
 
-// Función para actualizar un premio
 exports.actualizarPremio = async (req, res) => {
   const { nombre, stock_inicial, stock_disponible, id_tienda } = req.body;
   const { id } = req.params;
 
   try {
-    // Buscar el premio por su ID
     const premio = await Premio.findById(id);
     if (!premio) {
       return res.status(404).json({ message: 'Premio no encontrado' });
     }
 
-    // Buscar la tienda asociada para validar el id_tienda
     const tienda = await Tienda.findById(id_tienda);
     if (!tienda) {
       return res.status(404).json({ message: 'Tienda no encontrada' });
     }
 
-    // Actualizar los campos del premio
-    premio.nombre = nombre || premio.nombre;
-    premio.stock_inicial = stock_inicial || premio.stock_inicial;
-    premio.stock_disponible = stock_disponible || premio.stock_disponible;
-    premio.id_tienda = id_tienda || premio.id_tienda;
+    if (typeof nombre !== 'undefined') {
+      premio.nombre = nombre;
+    }
+    if (typeof stock_inicial !== 'undefined') {
+      premio.stock_inicial = stock_inicial;
+    }
+    if (typeof stock_disponible !== 'undefined') {
+      premio.stock_disponible = stock_disponible;
+    }
+    if (typeof id_tienda !== 'undefined') {
+      premio.id_tienda = id_tienda;
+    }
 
-    // Guardar el premio actualizado
     await premio.save();
 
-    // Responder con el premio actualizado
     res.status(200).json({
       message: 'Premio actualizado correctamente',
       premio
@@ -182,6 +184,7 @@ exports.actualizarPremio = async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar premio', error });
   }
 };
+
 exports.cancelarCliente = async (req, res) => {
   const { id_cliente } = req.body;
 
