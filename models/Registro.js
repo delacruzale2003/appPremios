@@ -1,4 +1,3 @@
-// models/Registro.js
 const mongoose = require('mongoose');
 
 const RegistroSchema = new mongoose.Schema({
@@ -6,7 +5,7 @@ const RegistroSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cliente',
     required: true,
-    unique: true    // <— índice único aquí
+    unique: true
   },
   tienda_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -26,6 +25,10 @@ const RegistroSchema = new mongoose.Schema({
   fecha_registro: {
     type: Date,
     default: Date.now
+  },
+  campaña: {
+    type: String,
+    required: true // ← identifica a qué proyecto pertenece el registro
   }
 });
 

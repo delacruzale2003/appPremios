@@ -7,7 +7,8 @@ const ClienteSchema = new mongoose.Schema({
   tienda: { type: mongoose.Schema.Types.ObjectId, ref: 'Tienda' },
   fecha_registro: { type: Date, default: Date.now },
   foto: { type: String },
-
+  campaña: { type: String, required: true }, // ← identifica el proyecto
+  
   // NUEVOS CAMPOS
   isValid: { type: Boolean, default: true },       // aparece en el panel si es true
   tienePremio: { type: Boolean, default: false },   // se vuelve true al entregar premio
