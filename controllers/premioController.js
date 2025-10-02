@@ -27,7 +27,7 @@ exports.crearPremio = async (req, res) => {
     await premio.save();
 
     // Actualizar el stock de la tienda
-    tienda.premios_disponibles += stock_disponible; // Incrementar el stock de premios disponibles
+    
     await tienda.save();
 
     res.status(201).json({
