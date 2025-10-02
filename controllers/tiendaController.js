@@ -2,17 +2,24 @@ const Tienda = require('../models/Tienda');
 
 // Función para obtener todas las tiendas
 const getTiendas = async (req, res) => {
-    try {
-        // Obtener todas las tiendas y poblar los premios disponibles
-        const tiendas = await Tienda.find().populate('premios_disponibles');
-        if (!tiendas || tiendas.length === 0) {
-            return res.status(404).json({ message: 'No se encontraron tiendas' });
-        }
-        res.json(tiendas);
-    } catch (error) {
-        res.status(500).json({ message: 'Error al obtener tiendas', error });
+  try {
+    const { campaña } = req.query;
+
+    // Si hay campaña, filtra por ella; si no, trae todas
+    const filtro = campaña ? { campaña } : {};
+
+    const tiendas = await Tienda.find(filtro).populate('premios_disponibles').lean();
+
+    if (!tiendas || tiendas.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron tiendas' });
     }
+
+    res.json(tiendas);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener tiendas', error });
+  }
 };
+
 
 // Función para crear una nueva tienda
 const crearTienda = async (req, res) => {
