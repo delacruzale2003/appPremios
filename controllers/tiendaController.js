@@ -23,14 +23,11 @@ const getTiendas = async (req, res) => {
 
 // Función para crear una nueva tienda
 const crearTienda = async (req, res) => {
-    const { nombre, premios_disponibles } = req.body;
+    const { nombre, premios_disponibles, campaña } = req.body;
 
     try {
         // Crear la nueva tienda
-        const tienda = new Tienda({
-            nombre,
-            premios_disponibles
-        });
+        const tienda = new Tienda({ nombre, premios_disponibles, campaña });
 
         // Guardar la tienda en la base de datos
         await tienda.save();
@@ -45,31 +42,31 @@ const crearTienda = async (req, res) => {
 };
 
 // Función para actualizar una tienda
+// Actualizar tienda (sin modificar campaña)
 const actualizarTienda = async (req, res) => {
-    const { nombre, premios_disponibles } = req.body;
-    const { id } = req.params;
+  const { nombre, premios_disponibles } = req.body;
+  const { id } = req.params;
 
-    try {
-        // Buscar la tienda por su ID
-        const tienda = await Tienda.findById(id);
-        if (!tienda) {
-            return res.status(404).json({ message: 'Tienda no encontrada' });
-        }
-
-        // Actualizar los campos de la tienda
-        tienda.nombre = nombre || tienda.nombre;  // Solo actualiza si hay un nuevo valor
-        tienda.premios_disponibles = premios_disponibles || tienda.premios_disponibles;
-
-        // Guardar la tienda actualizada
-        await tienda.save();
-
-        res.status(200).json({
-            message: 'Tienda actualizada correctamente',
-            tienda
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar tienda', error });
+  try {
+    const tienda = await Tienda.findById(id);
+    if (!tienda) {
+      return res.status(404).json({ message: 'Tienda no encontrada' });
     }
+
+    if (nombre) tienda.nombre = nombre;
+    if (typeof premios_disponibles !== 'undefined') {
+      tienda.premios_disponibles = premios_disponibles;
+    }
+
+    await tienda.save();
+
+    return res.status(200).json({
+      message: 'Tienda actualizada correctamente',
+      tienda
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al actualizar tienda', error });
+  }
 };
 
 // Función para eliminar una tienda

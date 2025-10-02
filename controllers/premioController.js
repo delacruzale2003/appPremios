@@ -5,7 +5,7 @@ const Registro = require('../models/Registro');
 
 // Crear Premio
 exports.crearPremio = async (req, res) => {
-  const { nombre, stock_inicial, stock_disponible, id_tienda } = req.body;
+  const { nombre, stock_inicial, stock_disponible, id_tienda , campaña } = req.body;
 
   try {
     // Buscar la tienda
@@ -19,7 +19,8 @@ exports.crearPremio = async (req, res) => {
       nombre,
       stock_inicial,
       stock_disponible,
-      id_tienda
+      id_tienda,
+      campaña
     });
 
     // Guardar el premio
@@ -98,7 +99,8 @@ exports.entregarPremio = async (req, res) => {
       tienda_id: tienda._id,
       premio_id: premioAleatorio._id,
       foto: cliente.foto,
-      fecha_registro: new Date()
+      fecha_registro: new Date(),
+      campaña: tienda.campaña
     });
     await registro.save();
 
@@ -200,5 +202,16 @@ exports.cancelarCliente = async (req, res) => {
   } catch (error) {
     console.error('Error al cancelar cliente:', error);
     return res.status(500).json({ message: 'Error al cancelar cliente', error: error.message });
+  }
+};
+
+exports.getPremiosPorCampaña = async (req, res) => {
+  const { campaña } = req.query;
+
+  try {
+    const premios = await Premio.find({ campaña });
+    return res.json(premios);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al obtener premios', error });
   }
 };

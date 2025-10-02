@@ -3,19 +3,22 @@ const Registro = require('../models/Registro'); // Importar el modelo Registro
 // Función para obtener todos los registros con los detalles relacionados
 exports.getRegistros = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10; // por defecto 10 registros
+    const limit = parseInt(req.query.limit) || 10;
     const skip = parseInt(req.query.skip) || 0;
+    const { campaña } = req.query;
 
-    const registros = await Registro.find()
-      .sort({ fecha_registro: -1 }) // opcional: ordena por fecha
+    const filtro = campaña ? { campaña } : {};
+
+    const registros = await Registro.find(filtro)
+      .sort({ fecha_registro: -1 })
       .limit(limit)
       .skip(skip)
-      .populate('cliente_id', 'nombre dni telefono') // incluye teléfono
+      .populate('cliente_id', 'nombre dni telefono')
       .populate('tienda_id', 'nombre')
       .populate('premio_id', 'nombre')
       .exec();
 
-    const total = await Registro.countDocuments();
+    const total = await Registro.countDocuments(filtro);
 
     res.status(200).json({ registros, total });
   } catch (error) {

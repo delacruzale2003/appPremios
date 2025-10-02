@@ -28,7 +28,8 @@ const RegistroSchema = new mongoose.Schema({
   },
   campaña: {
     type: String,
-    required: true // ← identifica a qué proyecto pertenece el registro
+    required: true,// ← identifica a qué proyecto pertenece el registro
+    index: true
   }
 });
 
