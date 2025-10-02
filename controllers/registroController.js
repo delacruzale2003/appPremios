@@ -69,3 +69,17 @@ exports.getRegistroPorCliente = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener el registro por cliente', error });
   }
 };
+exports.eliminarTodosLosRegistros = async (req, res) => {
+  try {
+    const resultado = await Registro.deleteMany({});
+    res.status(200).json({
+      message: 'Todos los registros han sido eliminados correctamente.',
+      eliminados: resultado.deletedCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error al eliminar los registros.',
+      error,
+    });
+  }
+};

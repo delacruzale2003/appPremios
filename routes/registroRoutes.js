@@ -6,4 +6,7 @@ router.get('/cliente/:idCliente', registroController.getRegistroPorCliente); // 
 router.get('/', registroController.getRegistros);
 router.get('/:id', registroController.getRegistroById); // ← último
 
+// 🔥 Ruta para eliminar todos los registros
+router.delete('/eliminar-todos', registroController.eliminarTodosLosRegistros);
+
 module.exports = router;
