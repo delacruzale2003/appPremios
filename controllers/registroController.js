@@ -48,7 +48,14 @@ exports.getRegistroPorCliente = async (req, res) => {
     const { idCliente } = req.params;
 
     const registro = await Registro.findOne({ cliente_id: idCliente })
-      .populate('cliente_id', 'nombre dni telefono foto')
+      .populate({
+        path: 'cliente_id',
+        select: 'nombre dni telefono foto tienda',
+        populate: {
+          path: 'tienda',
+          select: 'nombre'
+        }
+      })
       .populate('tienda_id', 'nombre')
       .populate('premio_id', 'nombre')
       .exec();
