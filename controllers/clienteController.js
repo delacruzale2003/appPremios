@@ -1,9 +1,9 @@
 const { validationResult } = require('express-validator');
 const Cliente = require('../models/Cliente');
+const campañasConDniUnico = ['cocacola', 'fantaauto'];
 
 // Función para registrar un cliente
 exports.registrarCliente = async (req, res) => {
-  // Capturar los errores de validación
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -12,19 +12,31 @@ exports.registrarCliente = async (req, res) => {
   const { dni, nombre, telefono, tienda, foto, campaña } = req.body;
 
   try {
-    // Crear el cliente
+    // Validar si esta campaña requiere DNI único
+    const requiereDniUnico = campañasConDniUnico.includes(campaña);
+
+    if (requiereDniUnico) {
+      const yaRegistrado = await Cliente.findOne({ dni, campaña });
+      if (yaRegistrado) {
+        return res.status(400).json({
+          message: 'Este DNI ya fue registrado en esta campaña',
+          error: 'dni_duplicado_en_campaña'
+        });
+      }
+    }
+
+    // Crear y guardar el cliente
     const cliente = new Cliente({
       dni,
       nombre,
       telefono,
       tienda,
       foto,
-      campaña,              // ← nuevo campo obligatorio
+      campaña,
       isValid: true,
       tienePremio: false,
     });
 
-    // Guardar el cliente
     await cliente.save();
     res.status(201).json({ message: 'Cliente registrado correctamente', cliente });
   } catch (error) {
