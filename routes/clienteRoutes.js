@@ -14,6 +14,8 @@ const validarCliente = [
 
 // Ruta para registrar un cliente con validación de datos
 router.post('/clientes', validarCliente, clienteController.registrarCliente); 
+// Ruta alternativa sin validación para campañas sin tienda ni foto
+router.post('/clientesr', clienteController.registrarCliente);
 
 // Ruta para obtener los clientes con soporte para límite personalizado en la query
 router.get('/clientes', 
