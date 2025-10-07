@@ -5,9 +5,12 @@ exports.getRegistros = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const skip = parseInt(req.query.skip) || 0;
-    const { campaña } = req.query;
+    const { campaña, tienda } = req.query;
 
-    const filtro = campaña ? { campaña } : {};
+    // Construir filtro dinámico
+    const filtro = {};
+    if (campaña) filtro.campaña = campaña;
+    if (tienda) filtro['tienda_id'] = tienda; // ← debe ser el ObjectId de la tienda
 
     const registros = await Registro.find(filtro)
       .sort({ fecha_registro: -1 })
@@ -25,6 +28,7 @@ exports.getRegistros = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener registros', error });
   }
 };
+
 
 exports.getRegistroById = async (req, res) => {
   try {
