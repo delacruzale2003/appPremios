@@ -3,8 +3,9 @@ const Registro = require('../models/Registro'); // Importar el modelo Registro
 // Función para obtener todos los registros con los detalles relacionados
 exports.getRegistros = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = parseInt(req.query.skip) || 0;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+const skip = req.query.skip ? parseInt(req.query.skip) : null;
+
     const { campaña, tienda } = req.query;
 
     // Construir filtro dinámico
@@ -50,32 +51,35 @@ exports.getRegistroById = async (req, res) => {
   }
 };
 
-exports.getRegistroPorCliente = async (req, res) => {
+exports.getRegistros = async (req, res) => {
   try {
-    const { idCliente } = req.params;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+    const skip = req.query.skip ? parseInt(req.query.skip) : null;
+    const { campaña, tienda } = req.query;
 
-    const registro = await Registro.findOne({ cliente_id: idCliente })
-      .populate({
-        path: 'cliente_id',
-        select: 'nombre dni telefono foto tienda',
-        populate: {
-          path: 'tienda',
-          select: 'nombre'
-        }
-      })
+    // Construir filtro dinámico
+    const filtro = {};
+    if (campaña) filtro.campaña = campaña;
+    if (tienda) filtro['tienda_id'] = tienda;
+
+    let query = Registro.find(filtro)
+      .sort({ fecha_registro: -1 })
+      .populate('cliente_id', 'nombre dni telefono')
       .populate('tienda_id', 'nombre')
-      .populate('premio_id', 'nombre')
-      .exec();
+      .populate('premio_id', 'nombre');
 
-    if (!registro) {
-      return res.status(404).json({ message: 'No se encontró registro para este cliente' });
-    }
+    if (limit !== null) query = query.limit(limit);
+    if (skip !== null) query = query.skip(skip);
 
-    res.status(200).json({ registro });
+    const registros = await query.exec();
+    const total = await Registro.countDocuments(filtro);
+
+    res.status(200).json({ registros, total });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener el registro por cliente', error });
+    res.status(500).json({ message: 'Error al obtener registros', error });
   }
 };
+
 exports.eliminarTodosLosRegistros = async (req, res) => {
   try {
     const resultado = await Registro.deleteMany({});
