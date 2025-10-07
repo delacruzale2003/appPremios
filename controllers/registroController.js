@@ -1,34 +1,7 @@
 const Registro = require('../models/Registro'); // Importar el modelo Registro
 
 // Función para obtener todos los registros con los detalles relacionados
-exports.getRegistros = async (req, res) => {
-  try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : null;
-const skip = req.query.skip ? parseInt(req.query.skip) : null;
 
-    const { campaña, tienda } = req.query;
-
-    // Construir filtro dinámico
-    const filtro = {};
-    if (campaña) filtro.campaña = campaña;
-    if (tienda) filtro['tienda_id'] = tienda; // ← debe ser el ObjectId de la tienda
-
-    const registros = await Registro.find(filtro)
-      .sort({ fecha_registro: -1 })
-      .limit(limit)
-      .skip(skip)
-      .populate('cliente_id', 'nombre dni telefono')
-      .populate('tienda_id', 'nombre')
-      .populate('premio_id', 'nombre')
-      .exec();
-
-    const total = await Registro.countDocuments(filtro);
-
-    res.status(200).json({ registros, total });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener registros', error });
-  }
-};
 
 
 exports.getRegistroById = async (req, res) => {
@@ -57,7 +30,6 @@ exports.getRegistros = async (req, res) => {
     const skip = req.query.skip ? parseInt(req.query.skip) : null;
     const { campaña, tienda } = req.query;
 
-    // Construir filtro dinámico
     const filtro = {};
     if (campaña) filtro.campaña = campaña;
     if (tienda) filtro['tienda_id'] = tienda;
@@ -79,6 +51,7 @@ exports.getRegistros = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener registros', error });
   }
 };
+
 
 exports.eliminarTodosLosRegistros = async (req, res) => {
   try {
