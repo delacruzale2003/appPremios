@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const Cliente = require('../models/Cliente');
+const axios = require('axios');
 const campañasConDniUnico = ['cocacola', 'fantaauto'];
 
 // Función para registrar un cliente
@@ -38,6 +39,22 @@ exports.registrarCliente = async (req, res) => {
     });
 
     await cliente.save();
+
+    // ✅ Notificación solo para campaña fanta
+    if (campaña === 'fanta') {
+      const tiendaNombre = tienda?.nombre || 'Sin tienda';
+      const mensaje = `🎃 Nuevo cliente FANTA registrado:\n👤 ${nombre}\n🆔 DNI: ${dni}\n📞 Teléfono: ${telefono}\n🏪 Tienda: ${tiendaNombre}`;
+
+      try {
+        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: mensaje,
+        });
+      } catch (err) {
+        console.error('❌ Error al enviar notificación Telegram:', err.message);
+      }
+    }
+
     res.status(201).json({ message: 'Cliente registrado correctamente', cliente });
   } catch (error) {
     res.status(500).json({ message: 'Error al registrar cliente', error });

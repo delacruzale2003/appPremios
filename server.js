@@ -8,9 +8,10 @@ const tiendaRoutes = require('./routes/tiendaRoutes');
 const premioRoutes = require('./routes/premioRoutes');
 const clienteRoutes = require('./routes/clienteRoutes');
 const registroRoutes = require('./routes/registroRoutes');
-const expirarClientes = require('./utils/expirarClientes');
 
-setInterval(expirarClientes, 60 * 1000); // cada 1 minuto
+
+
+
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 
