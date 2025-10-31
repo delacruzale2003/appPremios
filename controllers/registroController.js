@@ -1,5 +1,5 @@
 const Registro = require('../models/Registro'); // Importar el modelo Registro
-
+const Cliente = require('../models/Cliente');
 // Obtener todos los registros con filtros y paginación opcional
 exports.getRegistros = async (req, res) => {
   try {
@@ -50,7 +50,60 @@ exports.getRegistroById = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener el registro', error });
   }
 };
+exports.getRegistrosCompletos = async (req, res) => {
+  const { limit = 10, skip = 0, campaña, tienda } = req.query;
 
+  try {
+    const filtroBase = campaña ? { campaña } : {};
+    if (tienda) filtroBase.tienda = tienda;
+
+    // 1. Registros existentes (con premio)
+    const registros = await Registro.find(filtroBase)
+      .sort({ fecha_registro: -1 })
+      .skip(Number(skip))
+      .limit(Number(limit))
+      .populate('cliente_id', 'nombre telefono')
+      .populate('tienda_id', 'nombre')
+      .populate('premio_id', 'nombre');
+
+    // 2. Clientes sin premio o inválidos
+    const clientesSinRegistro = await Cliente.find({
+      ...filtroBase,
+      $or: [{ tienePremio: false }, { isValid: false }],
+    })
+      .sort({ fecha_registro: -1 })
+      .skip(Number(skip))
+      .limit(Number(limit))
+      .populate('tienda', 'nombre');
+
+    // 3. Convertir clientes a formato similar a Registro
+    const clientesConvertidos = clientesSinRegistro.map((c) => ({
+      _id: c._id,
+      cliente_id: {
+        _id: c._id,
+        nombre: c.nombre,
+        telefono: c.telefono,
+      },
+      tienda_id: {
+        _id: c.tienda?._id ?? '',
+        nombre: c.tienda?.nombre ?? '—',
+      },
+      premio_id: null,
+      foto: c.foto ?? '',
+      fecha_registro: c.fecha_registro,
+      campaña: c.campaña,
+      isValid: c.isValid,
+      tienePremio: c.tienePremio,
+    }));
+
+    // 4. Combinar ambos
+    const todos = [...registros, ...clientesConvertidos];
+
+    res.status(200).json({ registros: todos, total: todos.length });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener registros completos', error });
+  }
+};
 // Obtener registro por cliente
 exports.getRegistroPorCliente = async (req, res) => {
   try {
