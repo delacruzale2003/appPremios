@@ -60,8 +60,6 @@ exports.getRegistrosCompletos = async (req, res) => {
     // 1. Registros existentes (con premio)
     const registros = await Registro.find(filtroBase)
       .sort({ fecha_registro: -1 })
-      .skip(Number(skip))
-      .limit(Number(limit))
       .populate('cliente_id', 'nombre telefono')
       .populate('tienda_id', 'nombre')
       .populate('premio_id', 'nombre');
@@ -72,8 +70,6 @@ exports.getRegistrosCompletos = async (req, res) => {
       $or: [{ tienePremio: false }, { isValid: false }],
     })
       .sort({ fecha_registro: -1 })
-      .skip(Number(skip))
-      .limit(Number(limit))
       .populate('tienda', 'nombre');
 
     // 3. Convertir clientes a formato similar a Registro
@@ -99,11 +95,15 @@ exports.getRegistrosCompletos = async (req, res) => {
     // 4. Combinar ambos
     const todos = [...registros, ...clientesConvertidos];
 
-    res.status(200).json({ registros: todos, total: todos.length });
+    // 5. Aplicar paginación al conjunto combinado
+    const paginados = todos.slice(Number(skip), Number(skip) + Number(limit));
+
+    res.status(200).json({ registros: paginados, total: todos.length });
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener registros completos', error });
   }
 };
+
 // Obtener registro por cliente
 exports.getRegistroPorCliente = async (req, res) => {
   try {
