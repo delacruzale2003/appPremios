@@ -130,3 +130,18 @@ exports.getClientesCancelados = async (req, res) => {
   }
 };
 
+// Endpoint para verificar si hay clientes FANTA pendientes de premio
+exports.notificacionFanta = async (req, res) => {
+  try {
+    const hayPendientes = await Cliente.exists({
+      campaña: 'fanta',
+      isValid: true,
+      tienePremio: false,
+      tienda: { $ne: null }
+    });
+
+    res.status(200).json({ hayPendientes: Boolean(hayPendientes) });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al verificar notificación Fanta', error });
+  }
+};

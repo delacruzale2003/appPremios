@@ -1,5 +1,5 @@
 const express = require('express');
-const { body, query } = require('express-validator'); // Usar express-validator para validación
+const { body, query } = require('express-validator');
 const router = express.Router();
 const clienteController = require('../controllers/clienteController');
 
@@ -12,12 +12,11 @@ const validarCliente = [
     body('foto').notEmpty().withMessage('La foto es obligatoria'),
 ];
 
-// Ruta para registrar un cliente con validación de datos
+// Registro de clientes
 router.post('/clientes', validarCliente, clienteController.registrarCliente); 
-// Ruta alternativa sin validación para campañas sin tienda ni foto
 router.post('/clientesr', clienteController.registrarCliente);
 
-// Ruta para obtener los clientes con soporte para límite personalizado en la query
+// Consulta de clientes
 router.get('/clientes', 
     query('limit').optional().isInt({ min: 1 }).withMessage('El límite debe ser un número entero positivo'),
     clienteController.getClientes
@@ -25,7 +24,11 @@ router.get('/clientes',
 
 router.get('/pendientes', clienteController.getClientesPendientes);
 router.get('/cancelados', clienteController.getClientesCancelados);
-router.get('/:id', clienteController.getClientePorId); // ← esta debe ir al final
 
+// ✅ Nuevo endpoint para notificación FANTA
+router.get('/notificacion-fanta', clienteController.notificacionFanta);
+
+// Esta debe ir al final para evitar conflictos con rutas anteriores
+router.get('/:id', clienteController.getClientePorId);
 
 module.exports = router;
