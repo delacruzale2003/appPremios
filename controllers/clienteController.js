@@ -1,6 +1,11 @@
 const { validationResult } = require('express-validator');
-const Cliente = require('../models/Cliente');
 const axios = require('axios');
+
+const Cliente = require('../models/Cliente');
+const Registro = require('../models/Registro');
+const Tienda = require('../models/Tienda');
+const Premio = require('../models/Premio');
+
 const campañasConDniUnico = ['cocacola', 'fantaauto'];
 
 // Función para registrar un cliente
@@ -40,7 +45,7 @@ exports.registrarCliente = async (req, res) => {
 
     await cliente.save();
 
-    // ✅ Notificación solo para campaña fanta
+    // Notificación solo para campaña fanta
     if (campaña === 'fanta') {
       const tiendaNombre = tienda?.nombre || 'Sin tienda';
       const mensaje = `🎃 Nuevo cliente FANTA registrado:\n👤 ${nombre}\n🆔 DNI: ${dni}\n📞 Teléfono: ${telefono}\n🏪 Tienda: ${tiendaNombre}`;
@@ -57,12 +62,12 @@ exports.registrarCliente = async (req, res) => {
 
     res.status(201).json({ message: 'Cliente registrado correctamente', cliente });
   } catch (error) {
-    res.status(500).json({ message: 'Error al registrar cliente', error });
+    console.error('Error en registrarCliente:', error);
+    res.status(500).json({ message: 'Error al registrar cliente', error: error.message || error });
   }
 };
 
-
-// Función para obtener los últimos clientes registrados con el nombre de la tienda
+// Obtener últimos clientes (limit, por campaña)
 exports.getClientes = async (req, res) => {
   const { limit = 10, campaña } = req.query;
 
@@ -72,11 +77,13 @@ exports.getClientes = async (req, res) => {
     const clientes = await Cliente.find(filtro)
       .sort({ fecha_registro: -1 })
       .limit(Number(limit))
-      .populate('tienda', 'nombre');
+      .populate('tienda', 'nombre')
+      .lean();
 
     res.status(200).json({ clientes });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener clientes', error });
+    console.error('Error en getClientes:', error);
+    res.status(500).json({ message: 'Error al obtener clientes', error: error.message || error });
   }
 };
 
@@ -92,10 +99,12 @@ exports.getClientePorId = async (req, res) => {
 
     res.status(200).json({ cliente });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener cliente', error });
+    console.error('Error en getClientePorId:', error);
+    res.status(500).json({ message: 'Error al obtener cliente', error: error.message || error });
   }
 };
 
+// Clientes pendientes (isValid true, sin premio, con tienda)
 exports.getClientesPendientes = async (req, res) => {
   const { campaña } = req.query;
 
@@ -107,13 +116,15 @@ exports.getClientesPendientes = async (req, res) => {
       ...(campaña && { campaña })
     };
 
-    const clientes = await Cliente.find(filtro).populate('tienda', 'nombre');
+    const clientes = await Cliente.find(filtro).populate('tienda', 'nombre').lean();
     res.status(200).json({ clientes });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener clientes pendientes', error });
+    console.error('Error en getClientesPendientes:', error);
+    res.status(500).json({ message: 'Error al obtener clientes pendientes', error: error.message || error });
   }
 };
 
+// Clientes cancelados (isValid false)
 exports.getClientesCancelados = async (req, res) => {
   const { campaña } = req.query;
 
@@ -123,10 +134,11 @@ exports.getClientesCancelados = async (req, res) => {
       ...(campaña && { campaña })
     };
 
-    const clientes = await Cliente.find(filtro).populate('tienda', 'nombre');
+    const clientes = await Cliente.find(filtro).populate('tienda', 'nombre').lean();
     res.status(200).json({ clientes });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener clientes cancelados', error });
+    console.error('Error en getClientesCancelados:', error);
+    res.status(500).json({ message: 'Error al obtener clientes cancelados', error: error.message || error });
   }
 };
 
@@ -142,6 +154,92 @@ exports.notificacionFanta = async (req, res) => {
 
     res.status(200).json({ hayPendientes: Boolean(hayPendientes) });
   } catch (error) {
-    res.status(500).json({ message: 'Error al verificar notificación Fanta', error });
+    console.error('Error en notificacionFanta:', error);
+    res.status(500).json({ message: 'Error al verificar notificación Fanta', error: error.message || error });
+  }
+};
+
+// Devuelve toda la actividad de la campaña 'fanta' (clientes con o sin premio), orden cronológico descendente
+// GET /actividad-fanta-completa?limit=1000&skip=0
+exports.getActividadFantaCompleta = async (req, res) => {
+  try {
+    const campaña = 'fanta';
+    const limit = Math.max(1, Math.min(5000, Number(req.query.limit ?? 1000))); // límite razonable por defecto
+    const skip = Math.max(0, Number(req.query.skip ?? 0));
+
+    // 1) Traer registros (clientes que recibieron premio)
+    const registros = await Registro.find({ campaña })
+      .sort({ fecha_registro: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('cliente_id', 'nombre dni telefono tienda foto isValid tienePremio fecha_registro campaña')
+      .populate('tienda_id', 'nombre')
+      .populate('premio_id', 'nombre')
+      .lean();
+
+    // Mapear registros a formato unificado
+    const itemsFromRegistros = registros.map((r) => {
+      const cliente = r.cliente_id || {};
+      return {
+        origen: 'registro',
+        registro_id: r._id,
+        cliente_id: cliente._id ?? null,
+        nombre: cliente.nombre ?? null,
+        dni: cliente.dni ?? null,
+        telefono: cliente.telefono ?? null,
+        tienda: r.tienda_id ? { _id: r.tienda_id._id, nombre: r.tienda_id.nombre } :
+               (cliente.tienda ? { _id: cliente.tienda._id ?? null, nombre: cliente.tienda.nombre ?? null } : null),
+        foto: r.foto ?? cliente.foto ?? null,
+        premio: r.premio_id ? r.premio_id.nombre : (cliente.premio ? cliente.premio : 'SIN CONFIRMAR'),
+        tienePremio: Boolean(r.premio_id) || Boolean(cliente.tienePremio),
+        isValid: cliente.isValid === undefined ? true : cliente.isValid,
+        fecha_registro: r.fecha_registro,
+        campaña: r.campaña ?? cliente.campaña ?? campaña,
+      };
+    });
+
+    // 2) Obtener clientes registrados en la campaña que NO están en la colección Registro
+    const clienteIdsConRegistro = registros
+      .map((r) => (r.cliente_id ? String(r.cliente_id._id) : null))
+      .filter(Boolean);
+
+    const filtroClientesSinRegistro = {
+      campaña,
+      _id: { $nin: clienteIdsConRegistro }
+    };
+
+    const clientesSinRegistro = await Cliente.find(filtroClientesSinRegistro)
+      .select('nombre dni telefono tienda foto isValid tienePremio fecha_registro campaña')
+      .populate('tienda', 'nombre')
+      .lean();
+
+    const itemsFromClientes = clientesSinRegistro.map((c) => ({
+      origen: 'cliente',
+      cliente_id: c._id,
+      nombre: c.nombre ?? null,
+      dni: c.dni ?? null,
+      telefono: c.telefono ?? null,
+      tienda: c.tienda ? { _id: c.tienda._id, nombre: c.tienda.nombre } : null,
+      foto: c.foto ?? null,
+      premio: 'SIN CONFIRMAR',
+      tienePremio: Boolean(c.tienePremio),
+      isValid: c.isValid === undefined ? true : c.isValid,
+      fecha_registro: c.fecha_registro ?? null,
+      campaña: c.campaña ?? campaña,
+    }));
+
+    // 3) Unir y ordenar por fecha_registro descendente
+    const combinado = [...itemsFromRegistros, ...itemsFromClientes]
+      .filter(item => item.fecha_registro) // opcional: exclude entries without date
+      .sort((a, b) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
+
+    // 4) Responder con el listado completo y conteo
+    return res.status(200).json({
+      total: combinado.length,
+      registros: combinado
+    });
+  } catch (error) {
+    console.error('Error en getActividadFantaCompleta:', error);
+    return res.status(500).json({ message: 'Error al obtener actividad completa de FANTA', error: error.message || error });
   }
 };
