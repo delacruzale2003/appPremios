@@ -164,11 +164,16 @@ exports.notificacionFanta = async (req, res) => {
 exports.getActividadFantaCompleta = async (req, res) => {
   try {
     const campaña = 'fanta';
-    const limit = Math.max(1, Math.min(5000, Number(req.query.limit ?? 1000))); // límite razonable por defecto
+    const tiendaFiltro = req.query.tienda ? String(req.query.tienda) : null;
+    const limit = Math.max(1, Math.min(5000, Number(req.query.limit ?? 1000)));
     const skip = Math.max(0, Number(req.query.skip ?? 0));
 
-    // 1) Traer registros (clientes que recibieron premio)
-    const registros = await Registro.find({ campaña })
+    // Build filtro para registros (aplica tienda si se pasó)
+    const filtroRegistros = { campaña };
+    if (tiendaFiltro) filtroRegistros.tienda_id = tiendaFiltro;
+
+    // 1) Traer registros (clientes que recibieron premio), aplicando filtro de tienda si existe
+    const registros = await Registro.find(filtroRegistros)
       .sort({ fecha_registro: -1 })
       .skip(skip)
       .limit(limit)
@@ -193,22 +198,21 @@ exports.getActividadFantaCompleta = async (req, res) => {
         premio: r.premio_id ? r.premio_id.nombre : (cliente.premio ? cliente.premio : 'SIN CONFIRMAR'),
         tienePremio: Boolean(r.premio_id) || Boolean(cliente.tienePremio),
         isValid: cliente.isValid === undefined ? true : cliente.isValid,
-        fecha_registro: r.fecha_registro,
+        fecha_registro: r.fecha_registro ?? cliente.fecha_registro ?? null,
         campaña: r.campaña ?? cliente.campaña ?? campaña,
       };
     });
 
-    // 2) Obtener clientes registrados en la campaña que NO están en la colección Registro
+    // 2) Obtener clientes de la campaña que NO están en la colección Registro
     const clienteIdsConRegistro = registros
       .map((r) => (r.cliente_id ? String(r.cliente_id._id) : null))
       .filter(Boolean);
 
-    const filtroClientesSinRegistro = {
-      campaña,
-      _id: { $nin: clienteIdsConRegistro }
-    };
+    const filtroClientes = { campaña };
+    if (clienteIdsConRegistro.length) filtroClientes._id = { $nin: clienteIdsConRegistro };
+    if (tiendaFiltro) filtroClientes.tienda = tiendaFiltro;
 
-    const clientesSinRegistro = await Cliente.find(filtroClientesSinRegistro)
+    const clientesSinRegistro = await Cliente.find(filtroClientes)
       .select('nombre dni telefono tienda foto isValid tienePremio fecha_registro campaña')
       .populate('tienda', 'nombre')
       .lean();
@@ -228,14 +232,26 @@ exports.getActividadFantaCompleta = async (req, res) => {
       campaña: c.campaña ?? campaña,
     }));
 
-    // 3) Unir y ordenar por fecha_registro descendente
-    const combinado = [...itemsFromRegistros, ...itemsFromClientes]
-      .filter(item => item.fecha_registro) // opcional: exclude entries without date
-      .sort((a, b) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
+    // 3) Unir y ordenar por fecha_registro descendente (fallback fecha 0 para que queden al final)
+    const combinado = [...itemsFromRegistros, ...itemsFromClientes];
+    combinado.sort((a, b) => {
+      const ta = a.fecha_registro ? new Date(a.fecha_registro).getTime() : 0;
+      const tb = b.fecha_registro ? new Date(b.fecha_registro).getTime() : 0;
+      return tb - ta;
+    });
 
-    // 4) Responder con el listado completo y conteo
+    // 4) Total real: contar documentos que coinciden con filtros (registros + clientes sin registro)
+    // contar registros totales que coinciden con filtroRegistros (no paginados)
+    const totalRegistrosMatching = await Registro.countDocuments(filtroRegistros);
+    // contar clientes totales que coinciden con cliente filtro (antes de excluir por registro)
+    const filtroClientesTotal = { campaña };
+    if (tiendaFiltro) filtroClientesTotal.tienda = tiendaFiltro;
+    const totalClientesMatching = await Cliente.countDocuments(filtroClientesTotal);
+    // estimación total combinado (no doble conteo): registros + (clientes - clientesConRegistro)
+    const total = totalRegistrosMatching + Math.max(0, totalClientesMatching - clienteIdsConRegistro.length);
+
     return res.status(200).json({
-      total: combinado.length,
+      total,
       registros: combinado
     });
   } catch (error) {
