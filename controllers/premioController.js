@@ -70,10 +70,19 @@ exports.entregarPremio = async (req, res) => {
     }
 
     // ——— 3) Seleccionar uno al azar y descontar stock ———
-    const premioAleatorio =
-      premiosConStock[
-      Math.floor(Math.random() * premiosConStock.length)
-      ];
+    const totalStock = premiosConStock.reduce((sum, premio) => sum + premio.stock_disponible, 0);
+const random = Math.random() * totalStock;
+
+let acumulado = 0;
+let premioAleatorio = null;
+
+for (const premio of premiosConStock) {
+  acumulado += premio.stock_disponible;
+  if (random <= acumulado) {
+    premioAleatorio = premio;
+    break;
+  }
+}
 
     premioAleatorio.stock_disponible -= 1;
     await premioAleatorio.save();
