@@ -6,7 +6,7 @@ const Registro = require('../models/Registro');
 const Tienda = require('../models/Tienda');
 const Premio = require('../models/Premio');
 
-const campañasConDniUnico = ['cocacola', 'fantaauto'];
+const campañasConDniUnico = ['cocacola', 'fantaauto', 'sanluis', 'cclibertadores'];
 
 // Función para registrar un cliente
 exports.registrarCliente = async (req, res) => {
