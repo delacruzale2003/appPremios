@@ -47,24 +47,39 @@ exports.registrarCliente = async (req, res) => {
 
     // Notificación solo para campaña fanta
     if (campaña === 'fanta') {
-      const tiendaNombre = tienda?.nombre || 'Sin tienda';
-      const mensaje = `🎃 Nuevo cliente FANTA registrado:\n👤 ${nombre}\n🆔 DNI: ${dni}\n📞 Teléfono: ${telefono}\n🏪 Tienda: ${tiendaNombre}`;
+      let tiendaNombre = 'Sin tienda';
 
-      try {
-        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: mensaje,
-        });
-      } catch (err) {
-        console.error('❌ Error al enviar notificación Telegram:', err.message);
-      }
-    }
+      // 💡 CORRECCIÓN AQUÍ: Si hay un ID de tienda, búscalo para obtener el nombre
+      if (tienda) {
+        try {
+          const tiendaEncontrada = await Tienda.findById(tienda);
+          if (tiendaEncontrada) {
+            tiendaNombre = tiendaEncontrada.nombre;
+          }
+        } catch (err) {
+          console.error('Error al buscar la tienda para notificación:', err.message);
+          // Continuamos con 'Sin tienda' si falla la búsqueda
+        }
+      }
+      // -----------------------------------------------------------------------
 
-    res.status(201).json({ message: 'Cliente registrado correctamente', cliente });
-  } catch (error) {
-    console.error('Error en registrarCliente:', error);
-    res.status(500).json({ message: 'Error al registrar cliente', error: error.message || error });
-  }
+      const mensaje = `Nuevo cliente FANTA registrado:\n👤 ${nombre}\n🆔 DNI: ${dni}\n📞 Teléfono: ${telefono}\n🏪 Tienda: ${tiendaNombre}`;
+
+      try {
+        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: mensaje,
+        });
+      } catch (err) {
+        console.error('❌ Error al enviar notificación Telegram:', err.message);
+      }
+    }
+
+    res.status(201).json({ message: 'Cliente registrado correctamente', cliente });
+  } catch (error) {
+    console.error('Error en registrarCliente:', error);
+    res.status(500).json({ message: 'Error al registrar cliente', error: error.message || error });
+  }
 };
 
 // Obtener últimos clientes (limit, por campaña)
