@@ -107,7 +107,10 @@ exports.getClientePorId = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const cliente = await Cliente.findById(id).populate('tienda', 'nombre');
+    const cliente = await Cliente.findById(id)
+  .populate('tienda', 'nombre')
+  .populate('premio', 'nombre'); // ← importante
+
     if (!cliente) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
     }

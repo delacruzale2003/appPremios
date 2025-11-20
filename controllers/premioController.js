@@ -5,7 +5,7 @@ const Registro = require('../models/Registro');
 
 // Crear Premio
 exports.crearPremio = async (req, res) => {
-  const { nombre, stock_inicial, stock_disponible, id_tienda , campaña } = req.body;
+  const { nombre, stock_inicial, stock_disponible, id_tienda, campaña } = req.body;
 
   try {
     // Buscar la tienda
@@ -27,7 +27,7 @@ exports.crearPremio = async (req, res) => {
     await premio.save();
 
     // Actualizar el stock de la tienda
-    
+
     await tienda.save();
 
     res.status(201).json({
@@ -71,18 +71,18 @@ exports.entregarPremio = async (req, res) => {
 
     // ——— 3) Seleccionar uno al azar y descontar stock ———
     const totalStock = premiosConStock.reduce((sum, premio) => sum + premio.stock_disponible, 0);
-const random = Math.random() * totalStock;
+    const random = Math.random() * totalStock;
 
-let acumulado = 0;
-let premioAleatorio = null;
+    let acumulado = 0;
+    let premioAleatorio = null;
 
-for (const premio of premiosConStock) {
-  acumulado += premio.stock_disponible;
-  if (random <= acumulado) {
-    premioAleatorio = premio;
-    break;
-  }
-}
+    for (const premio of premiosConStock) {
+      acumulado += premio.stock_disponible;
+      if (random <= acumulado) {
+        premioAleatorio = premio;
+        break;
+      }
+    }
 
     premioAleatorio.stock_disponible -= 1;
     await premioAleatorio.save();
@@ -117,7 +117,8 @@ for (const premio of premiosConStock) {
     return res.json({
       message: 'Premio entregado correctamente',
       premio: premioAleatorio.nombre,
-      cliente: cliente.nombre
+      
+      cliente
     });
 
   } catch (err) {
