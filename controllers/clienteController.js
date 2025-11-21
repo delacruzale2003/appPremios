@@ -112,8 +112,7 @@ exports.exportClientes = async (req, res) => {
 
     const clientes = await Cliente.find(filtro)
       .sort({ fecha_registro: -1 })
-      .populate('tienda', 'nombre')
-      .populate('premio', 'nombre')
+      .populate('tienda', 'nombre') // si existe en el schema
       .lean();
 
     res.status(200).json({ clientes });
