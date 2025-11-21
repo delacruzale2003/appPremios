@@ -21,6 +21,10 @@ router.get('/clientes',
     query('limit').optional().isInt({ min: 1 }).withMessage('El límite debe ser un número entero positivo'),
     clienteController.getClientes
 );
+
+// ✅ Nuevo endpoint para exportar todos los clientes (sin límite)
+router.get('/clientes/export', clienteController.exportClientes);
+
 router.get('/actividad-fanta-completa', clienteController.getActividadFantaCompleta);
 
 router.get('/pendientes', clienteController.getClientesPendientes);

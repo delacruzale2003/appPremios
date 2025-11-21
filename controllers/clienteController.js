@@ -84,21 +84,45 @@ exports.registrarCliente = async (req, res) => {
 
 // Obtener últimos clientes (limit, por campaña)
 exports.getClientes = async (req, res) => {
-  const { limit = 10, campaña } = req.query;
+  const { limit, campaña } = req.query;
+
+  try {
+    const filtro = campaña ? { campaña } : {};
+
+    let query = Cliente.find(filtro).sort({ fecha_registro: -1 }).populate('tienda', 'nombre').lean();
+
+    if (limit) {
+      query = query.limit(Number(limit));
+    }
+
+    const clientes = await query;
+
+    res.status(200).json({ clientes });
+  } catch (error) {
+    console.error('Error en getClientes:', error);
+    res.status(500).json({ message: 'Error al obtener clientes', error: error.message || error });
+  }
+};
+
+exports.exportClientes = async (req, res) => {
+  const { campaña } = req.query;
 
   try {
     const filtro = campaña ? { campaña } : {};
 
     const clientes = await Cliente.find(filtro)
       .sort({ fecha_registro: -1 })
-      .limit(Number(limit))
       .populate('tienda', 'nombre')
+      .populate('premio', 'nombre')
       .lean();
 
     res.status(200).json({ clientes });
   } catch (error) {
-    console.error('Error en getClientes:', error);
-    res.status(500).json({ message: 'Error al obtener clientes', error: error.message || error });
+    console.error('Error en exportClientes:', error);
+    res.status(500).json({
+      message: 'Error al exportar clientes',
+      error: error.message || error,
+    });
   }
 };
 
