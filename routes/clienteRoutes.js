@@ -1,39 +1,35 @@
 const express = require('express');
-const { body, query } = require('express-validator');
 const router = express.Router();
 const clienteController = require('../controllers/clienteController');
 
-// Validación de datos para registrar un cliente
-const validarCliente = [
-    body('dni').notEmpty().withMessage('El DNI es obligatorio'),
-    body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
-    body('telefono').notEmpty().withMessage('El teléfono es obligatorio'),
-    body('tienda').notEmpty().withMessage('La tienda es obligatoria'),
-    body('foto').notEmpty().withMessage('La foto es obligatoria'),
-];
+// ---------------------------------------------------------
+// RUTAS DE CONSULTA Y REPORTES
+// ---------------------------------------------------------
 
-// Registro de clientes
-router.post('/clientes', validarCliente, clienteController.registrarCliente); 
-router.post('/clientesr', clienteController.registrarCliente);
+// 1. Obtener lista de clientes (Paginado)
+// Frontend usa: GET /cliente/clientes?limit=10&campaña=...
+router.get('/clientes', clienteController.getClientes);
 
-// Consulta de clientes
-router.get('/clientes', 
-    query('limit').optional().isInt({ min: 1 }).withMessage('El límite debe ser un número entero positivo'),
-    clienteController.getClientes
-);
+// 2. Exportar clientes (Compatibilidad)
+// Reutilizamos getClientes. El frontend puede pedir ?limit=10000 para exportar todo.
+router.get('/clientes/export', clienteController.getClientes);
 
-// ✅ Nuevo endpoint para exportar todos los clientes (sin límite)
-router.get('/clientes/export', clienteController.exportClientes);
+// 3. Reporte de Actividad (El reemplazo de "Fanta Completa")
+// Mantiene la URL vieja para que tu frontend no se rompa, pero usa la lógica nueva.
+router.get('/actividad-fanta-completa', clienteController.getActividadCompleta);
 
-router.get('/actividad-fanta-completa', clienteController.getActividadFantaCompleta);
+// También agregamos una ruta con nombre más limpio para el futuro
+router.get('/reporte/actividad', clienteController.getActividadCompleta);
 
-router.get('/pendientes', clienteController.getClientesPendientes);
-router.get('/cancelados', clienteController.getClientesCancelados);
-
-// ✅ Nuevo endpoint para notificación FANTA
-router.get('/notificacion-fanta', clienteController.notificacionFanta);
-
-// Esta debe ir al final para evitar conflictos con rutas anteriores
+// 4. Obtener cliente específico por ID
+// (Siempre debe ir al final para no chocar con las otras rutas)
 router.get('/:id', clienteController.getClientePorId);
+
+// ---------------------------------------------------------
+// RUTAS ELIMINADAS / MOVIDAS
+// ---------------------------------------------------------
+// ❌ POST /clientes -> ELIMINADO. (Ahora se usa POST /premio/entregar)
+// ❌ GET /pendientes -> ELIMINADO. (Usa filtros en el reporte general)
+// ❌ GET /notificacion-fanta -> ELIMINADO. (Ya no es necesario polling)
 
 module.exports = router;
