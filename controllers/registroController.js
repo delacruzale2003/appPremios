@@ -1,37 +1,60 @@
 const Registro = require('../models/Registro');
 const Cliente = require('../models/Cliente');
 
-// --- OBTENER REGISTROS (Ganadores y No Ganadores unificados) ---
+// --- OBTENER REGISTROS (Blindado contra Error 500) ---
 exports.getRegistros = async (req, res) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    // 1. Manejo inteligente del límite
+    let limit = 10; // Valor por defecto
+    if (req.query.limit) {
+      const parsed = parseInt(req.query.limit);
+      // Si el parsed es NaN, volvemos a 10. Si es 0, lo mantenemos como 0.
+      limit = isNaN(parsed) ? 10 : parsed;
+    }
+
     const skip = req.query.skip ? parseInt(req.query.skip) : 0;
     const { campaña, tienda } = req.query;
 
+    // 2. Filtros Robustos (Evita CastError por strings vacíos)
     const filtro = {};
     if (campaña) filtro.campaña = campaña;
-    if (tienda) filtro.tienda_id = tienda;
+    
+    // Solo agregamos el filtro de tienda si es un valor real
+    if (tienda && tienda !== 'undefined' && tienda !== '') {
+        filtro.tienda_id = tienda;
+    }
 
-    const [registros, total] = await Promise.all([
-      Registro.find(filtro)
+    // 3. Construir la Query
+    // Usamos .lean() para mejorar rendimiento al exportar muchos datos
+    let query = Registro.find(filtro)
         .sort({ fecha_registro: -1 })
-        .skip(skip)
-        .limit(limit)
         .populate('cliente_id', 'nombre dni telefono foto')
         .populate('tienda_id', 'nombre')
         .populate('premio_id', 'nombre')
-        .lean(), // Lectura rápida
+        .lean();
+
+    // 4. Aplicar Paginación solo si hay un límite definido positivo
+    // Si limit es 0 (Exportar Todo), saltamos este bloque y trae todo.
+    if (limit > 0) {
+        query = query.limit(limit).skip(skip);
+    }
+
+    // 5. Ejecutar en paralelo (Datos + Conteo Total)
+    const [registros, total] = await Promise.all([
+      query.exec(),
       Registro.countDocuments(filtro)
     ]);
 
     res.status(200).json({ registros, total });
+
   } catch (error) {
-    console.error("Error getRegistros:", error);
-    res.status(500).json({ message: 'Error al obtener registros', error: error.message });
+    console.error("❌ Error CRÍTICO en getRegistros:", error);
+    // Devolvemos el error detallado para verlo en el navegador
+    res.status(500).json({ message: 'Error interno al obtener registros', error: error.message });
   }
 };
 
-// --- ALIAS PARA COMPATIBILIDAD (Redirige al método nuevo) ---
+// --- ALIAS PARA COMPATIBILIDAD ---
 exports.getRegistrosCompletos = exports.getRegistros;
 
 // --- OBTENER POR ID ---
@@ -68,7 +91,7 @@ exports.getRegistroPorCliente = async (req, res) => {
   }
 };
 
-// --- ELIMINAR TODO (Cuidado con esto en producción) ---
+// --- ELIMINAR TODO ---
 exports.eliminarTodosLosRegistros = async (req, res) => {
   try {
     const resultado = await Registro.deleteMany({});
