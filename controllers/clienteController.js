@@ -1,4 +1,5 @@
 const Cliente = require('../models/Cliente');
+const Premio = require('../models/Premio');
 const Registro = require('../models/Registro');
 
 // Obtener clientes (Paginado y ligero)
