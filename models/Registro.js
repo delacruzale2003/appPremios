@@ -5,7 +5,7 @@ const RegistroSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cliente',
     required: true,
-    unique: true
+    unique: true // Un cliente = un registro por campaña
   },
   tienda_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -15,7 +15,8 @@ const RegistroSchema = new mongoose.Schema({
   premio_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Premio',
-    required: true
+    required: false, // <--- ¡AHORA SÍ! Permite guardar sin premio
+    default: null
   },
   foto: {
     type: String,
@@ -28,12 +29,16 @@ const RegistroSchema = new mongoose.Schema({
   },
   campaña: {
     type: String,
-    required: true,// ← identifica a qué proyecto pertenece el registro
+    required: false,
+    index: true
+  },
+  // NUEVO CAMPO: Nos ayuda a diferenciar ganadores de perdedores rapidísimo
+  esGanador: {
+    type: Boolean,
+    default: true,
     index: true
   }
 });
 
-// Si quieres, también puedes definirlo como índice:
-// RegistroSchema.index({ cliente_id: 1 }, { unique: true });
-
-module.exports = mongoose.model('Registro', RegistroSchema);
+// Evita el error "OverwriteModelError"
+module.exports = mongoose.models.Registro || mongoose.model('Registro', RegistroSchema);

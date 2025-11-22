@@ -1,11 +1,43 @@
 const mongoose = require('mongoose');
 
-const PremioSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  stock_inicial: { type: Number, required: true },
-  stock_disponible: { type: Number, required: true },
-  id_tienda: { type: mongoose.Schema.Types.ObjectId, ref: 'Tienda', required: true },
-  campaña: { type: String, required: true } // ← campo para identificar la campaña
+const RegistroSchema = new mongoose.Schema({
+  cliente_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cliente',
+    required: true,
+    unique: true // Un cliente solo puede tener un registro por campaña
+  },
+  tienda_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tienda',
+    required: true
+  },
+  premio_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Premio',
+    required: false, // <--- CAMBIO: Ahora permite estar vacío
+    default: null
+  },
+  foto: {
+    type: String,
+    required: false,
+    default: ""
+  },
+  fecha_registro: {
+    type: Date,
+    default: Date.now
+  },
+  campaña: {
+    type: String,
+    required: true,
+    index: true
+  },
+  // NUEVO CAMPO: Ayuda mucho a filtrar rápido en el panel de control
+  esGanador: {
+    type: Boolean,
+    default: true,
+    index: true
+  }
 });
 
-module.exports = mongoose.model('Premio', PremioSchema);
+module.exports = mongoose.model('Registro', RegistroSchema);

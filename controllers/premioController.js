@@ -38,7 +38,52 @@ exports.crearPremio = async (req, res) => {
     res.status(500).json({ message: 'Error al crear premio', error });
   }
 };
+// Ejemplo de cómo debe ser tu lógica en el controlador de asignación de premios
+exports. asignarPremio = async (clienteId, tiendaId, campaña) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+        // 1. Descontar stock ATÓMICAMENTE.
+        // Solo modificará si stock_disponible > 0. Si devuelve null, no había stock.
+        const premio = await Premio.findOneAndUpdate(
+            { 
+                id_tienda: tiendaId, 
+                campaña: campaña, 
+                stock_disponible: { $gt: 0 } // CONDICIÓN CLAVE
+            },
+            { $inc: { stock_disponible: -1 } }, // DECREMENTO ATÓMICO
+            { new: true, session }
+        );
+
+        if (!premio) {
+            throw new Error("No hay stock disponible");
+        }
+
+        // 2. Crear el registro
+        const registro = await Registro.create([{
+            cliente_id: clienteId,
+            tienda_id: tiendaId,
+            premio_id: premio._id,
+            campaña: campaña
+        }], { session });
+
+        // 3. Marcar cliente con premio
+        await Cliente.findByIdAndUpdate(clienteId, 
+            { tienePremio: true }, 
+            { session }
+        );
+
+        await session.commitTransaction();
+        return registro;
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error; // Manejar error en la respuesta HTTP
+    } finally {
+        session.endSession();
+    }
+};
 // controllers/premioController.js
 exports.entregarPremio = async (req, res) => {
   const { id_cliente, id_tienda } = req.body;
