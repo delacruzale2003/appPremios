@@ -12,10 +12,12 @@
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.13.1",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "twilio": "^5.10.4"

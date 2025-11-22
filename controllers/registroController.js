@@ -1,149 +1,130 @@
-const Registro = require('../models/Registro'); // Importar el modelo Registro
+const mongoose = require('mongoose');
+const Registro = require('../models/Registro');
 const Cliente = require('../models/Cliente');
-// Obtener todos los registros con filtros y paginación opcional
+// ✅ IMPORTANTE: Mayúsculas para coincidir con tus archivos en Render (Linux)
+const Premio = require('../models/Premio'); 
+const Tienda = require('../models/Tienda'); 
+
+// --- OBTENER REGISTROS (Blindado contra Error 500) ---
 exports.getRegistros = async (req, res) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : null;
-    const skip = req.query.skip ? parseInt(req.query.skip) : null;
+    // 1. Manejo inteligente del límite
+    let limit = 10; 
+    if (req.query.limit) {
+      const parsed = parseInt(req.query.limit);
+      // Si es NaN vuelve a 10. Si es 0, se queda en 0 (para exportar todo).
+      limit = isNaN(parsed) ? 10 : parsed;
+    }
+
+    const skip = req.query.skip ? parseInt(req.query.skip) : 0;
     const { campaña, tienda } = req.query;
 
-    // Construir filtro dinámico
+    // 2. Filtros Robustos
     const filtro = {};
     if (campaña) filtro.campaña = campaña;
-    if (tienda) filtro['tienda_id'] = tienda;
+    
+    // Solo agregamos el filtro de tienda si es un ID real y no un string vacío
+    if (tienda && tienda !== 'undefined' && tienda !== '') {
+        filtro.tienda_id = tienda;
+    }
 
+    // 3. Construir Query
     let query = Registro.find(filtro)
-      .sort({ fecha_registro: -1 })
-      .populate('cliente_id', 'nombre dni telefono')
-      .populate('tienda_id', 'nombre')
-      .populate('premio_id', 'nombre');
+        .sort({ fecha_registro: -1 })
+        .populate({ path: 'cliente_id', select: 'nombre dni telefono foto', strictPopulate: false })
+        .populate({ path: 'tienda_id', select: 'nombre', strictPopulate: false })
+        .populate({ path: 'premio_id', select: 'nombre', strictPopulate: false })
+        .lean();
 
-    if (limit !== null) query = query.limit(limit);
-    if (skip !== null) query = query.skip(skip);
+    // 4. Paginación
+    // Si limit es 0 (Exportar), NO limitamos. Si es > 0, paginamos.
+    if (limit > 0) {
+        query = query.limit(limit).skip(skip);
+    }
 
-    const registros = await query.exec();
-    const total = await Registro.countDocuments(filtro);
+    // 5. Ejecutar
+    const [registros, total] = await Promise.all([
+      query.exec(),
+      Registro.countDocuments(filtro)
+    ]);
 
     res.status(200).json({ registros, total });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener registros', error });
+    console.error("❌ Error CRÍTICO en getRegistros:", error);
+    res.status(500).json({ message: 'Error interno', error: error.message });
   }
 };
 
-// Obtener un registro por ID
+// --- ALIAS PARA COMPATIBILIDAD ---
+exports.getRegistrosCompletos = exports.getRegistros;
+
+// --- OBTENER POR ID (Del Registro) ---
 exports.getRegistroById = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Validación extra de seguridad
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ message: 'ID de registro inválido' });
+    }
 
     const registro = await Registro.findById(id)
       .populate('cliente_id', 'nombre dni telefono foto')
       .populate('tienda_id', 'nombre')
       .populate('premio_id', 'nombre')
-      .exec();
+      .lean();
 
-    if (!registro) {
-      return res.status(404).json({ message: 'Registro no encontrado' });
-    }
-
+    if (!registro) return res.status(404).json({ message: 'Registro no encontrado' });
     res.status(200).json({ registro });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener el registro', error });
-  }
-};
-exports.getRegistrosCompletos = async (req, res) => {
-  const { limit = 10, skip = 0, campaña, tienda } = req.query;
-
-  try {
-    const filtroBase = campaña ? { campaña } : {};
-    if (tienda) filtroBase.tienda = tienda;
-
-    // 1. Registros existentes (con premio)
-    const registros = await Registro.find(filtroBase)
-      .sort({ fecha_registro: -1 })
-      .populate('cliente_id', 'nombre telefono')
-      .populate('tienda_id', 'nombre')
-      .populate('premio_id', 'nombre');
-
-    // 2. Clientes sin premio o inválidos
-    const clientesSinRegistro = await Cliente.find({
-      ...filtroBase,
-      $or: [{ tienePremio: false }, { isValid: false }],
-    })
-      .sort({ fecha_registro: -1 })
-      .populate('tienda', 'nombre');
-
-    // 3. Convertir clientes a formato similar a Registro
-    const clientesConvertidos = clientesSinRegistro.map((c) => ({
-      _id: c._id,
-      cliente_id: {
-        _id: c._id,
-        nombre: c.nombre,
-        telefono: c.telefono,
-      },
-      tienda_id: {
-        _id: c.tienda?._id ?? '',
-        nombre: c.tienda?.nombre ?? '—',
-      },
-      premio_id: null,
-      foto: c.foto ?? '',
-      fecha_registro: c.fecha_registro,
-      campaña: c.campaña,
-      isValid: c.isValid,
-      tienePremio: c.tienePremio,
-    }));
-
-    // 4. Combinar ambos
-    const todos = [...registros, ...clientesConvertidos];
-
-    // 5. Aplicar paginación al conjunto combinado
-    const paginados = todos.slice(Number(skip), Number(skip) + Number(limit));
-
-    res.status(200).json({ registros: paginados, total: todos.length });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener registros completos', error });
+    res.status(500).json({ message: 'Error', error: error.message });
   }
 };
 
-// Obtener registro por cliente
+// --- OBTENER POR CLIENTE (HÍBRIDO: ID O DNI) ---
+// ✅ ESTA ES LA FUNCIÓN QUE ARREGLA TU ERROR "Cast to ObjectId"
 exports.getRegistroPorCliente = async (req, res) => {
   try {
     const { idCliente } = req.params;
+    
+    let idBusqueda = idCliente;
 
-    const registro = await Registro.findOne({ cliente_id: idCliente })
-      .populate({
-        path: 'cliente_id',
-        select: 'nombre dni telefono foto tienda',
-        populate: {
-          path: 'tienda',
-          select: 'nombre'
+    // 1. DETECTAR SI ES UN DNI (No es un ObjectId válido de MongoDB)
+    // Si el frontend manda "27777777", esto entra al if
+    if (!mongoose.Types.ObjectId.isValid(idCliente)) {
+        // Asumimos que es un DNI y buscamos primero al cliente para obtener su _id real
+        const clienteEncontrado = await Cliente.findOne({ dni: idCliente });
+        
+        if (!clienteEncontrado) {
+            return res.status(404).json({ message: `No existe cliente con DNI: ${idCliente}` });
         }
-      })
-      .populate('tienda_id', 'nombre')
-      .populate('premio_id', 'nombre')
-      .exec();
-
-    if (!registro) {
-      return res.status(404).json({ message: 'No se encontró registro para este cliente' });
+        // Usamos su ID real (_id) para buscar en la tabla de registros
+        idBusqueda = clienteEncontrado._id;
     }
 
+    // 2. BUSCAR EL REGISTRO CON EL ID SEGURO
+    const registro = await Registro.findOne({ cliente_id: idBusqueda })
+      .populate({ path: 'cliente_id', select: 'nombre dni', strictPopulate: false })
+      .populate({ path: 'tienda_id', select: 'nombre', strictPopulate: false })
+      .populate({ path: 'premio_id', select: 'nombre', strictPopulate: false })
+      .lean();
+
+    if (!registro) return res.status(404).json({ message: 'No se encontró registro de juego para este cliente' });
+    
     res.status(200).json({ registro });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener el registro por cliente', error });
+    console.error("Error en getRegistroPorCliente:", error);
+    res.status(500).json({ message: 'Error al buscar por cliente', error: error.message });
   }
 };
 
-// Eliminar todos los registros
+// --- ELIMINAR TODO ---
 exports.eliminarTodosLosRegistros = async (req, res) => {
   try {
     const resultado = await Registro.deleteMany({});
-    res.status(200).json({
-      message: 'Todos los registros han sido eliminados correctamente.',
-      eliminados: resultado.deletedCount,
-    });
+    res.status(200).json({ message: 'Eliminados', eliminados: resultado.deletedCount });
   } catch (error) {
-    res.status(500).json({
-      message: 'Error al eliminar los registros.',
-      error,
-    });
+    res.status(500).json({ message: 'Error', error: error.message });
   }
 };
