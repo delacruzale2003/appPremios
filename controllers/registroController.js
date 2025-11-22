@@ -1,5 +1,8 @@
 const Registro = require('../models/Registro');
 const Cliente = require('../models/Cliente');
+// ✅ AGREGADOS: Necesarios para que funcionen los .populate()
+const Premio = require('../models/Premio'); 
+const Tienda = require('../models/Tienda');
 
 // --- OBTENER REGISTROS (Blindado contra Error 500) ---
 exports.getRegistros = async (req, res) => {
